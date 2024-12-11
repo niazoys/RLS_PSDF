@@ -1,0 +1,65 @@
+# @package _global_
+
+device: 'cuda'
+
+sdm: True
+
+
+model_obj:
+  _target_: model.unet_plusplus_sdm_big.Unet_sdm
+
+handler_obj:
+  _target_: model.model_handlers.model_handler_sdm.Model_handler_sdm
+
+loss_obj:
+  _target_: utils.loss.Clamp_GNLL
+
+# Set it to True for mean and variance output
+gaussian_output: True
+
+
+# Prediction with Synthetic Noise 
+validation_time_artifact: False
+
+model:
+  use_input_instance_norm: True
+  out_act: False
+
+
+
+train:
+  use_all_data : False
+  use_half_size_img : True
+  num_workers: 2
+  batch_size: 2
+  num_epoch: 200
+  reduce_lr_step : 150000
+  use_scheduler : 1 # 0 = false : 1 = true
+  optimizer:
+    adam:
+      lr: 0.0001
+test:
+  num_workers: 2
+  batch_size: 2
+
+
+direct_misc:
+  oversample_hardCase: True  
+  groupNorm: False
+  use_multi_head: True
+
+sdm_misc: 
+  groupNorm: False
+  oversample_hardCase: True
+  clamp_delta : 30
+  use_multi_head: True
+
+data:
+  # data_root_dir: ${work_dir}/data/new_data/
+  data_root_dir: ${work_dir}/data/external/
+
+log:
+  save_model_each_epoch: True
+
+load:
+  resume_state_path: ~

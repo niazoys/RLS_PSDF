@@ -1,0 +1,77 @@
+# @package _global_
+name: 'SDM_inference'
+exp_name: null
+work_dir: ${hydra:runtime.cwd}
+
+defaults:
+  - _self_
+  - model: default.yaml
+  - datamodule: default.yaml
+  - general: default.yaml
+  - experiment: default.yaml
+  - override hydra/job_logging: custom
+  - override hydra/hydra_logging: colorlog
+  
+output_dir: ${work_dir}/outputs/${now:%Y-%m-%d}/${exp_name}-${now:%Y-%m-%d_%H-%M-%S}
+
+working_dir: ${work_dir}
+device: 'cpu'
+random_seed: 1212
+
+model_obj:
+  _target_: model.unet_plusplus_sdm_big.Unet_sdm
+
+handler_obj:
+  _target_: model.model_handlers.model_handler_sdm.Model_handler_sdm
+
+loss_obj:
+  _target_: utils.loss.Clamp_GNLL
+
+
+# Set it true for using only small number of samples 
+# for training to quickly debug the code
+debug_mode: 0
+
+learned_censoring: False  
+
+# Set it to True for mean and variance output
+gaussian_output: True
+
+# use unsigned distance for training
+unsigned_distance : True
+
+# set it to true monte carlo dropout
+testTime_dropout : False
+
+# Set it to True for inference mode
+inference_mode: False
+
+# Debug
+testing_noise : False
+
+# Set it to True for artficially adding noise to the 
+# input so that it can be used for using as surrogate 
+# for real variance meansures
+artifact : False
+validation_time_artifact: False
+
+# Folloing are mutually exclusive
+sdm: True
+
+direct_misc:
+  oversample_hardCase: True  
+  groupNorm: False
+  use_multi_head: True
+
+sdm_misc: 
+  groupNorm: False
+  oversample_hardCase: True
+  clamp_delta : 24
+  use_multi_head: True
+  
+data:
+  data_root_dir: ${work_dir}/data/new_data/
+
+hydra:
+  run:
+    dir: ${output_dir}

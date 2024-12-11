@@ -1,0 +1,39 @@
+# @package _global_
+
+model:
+  num_class: 3
+  gaussian_output: True
+  out_act: False
+  use_input_instance_norm: True
+
+train:
+  use_all_data : False
+  use_half_size_img : True
+  affine_transform: False
+  artifact_prob: 1.0
+  num_slice_per_vol : 70
+  num_patients_train : 100
+  num_patients_val : 10
+  num_workers: 1
+  batch_size: 2
+  num_epoch: 350
+  reduce_lr_step : 100000
+  use_scheduler : 1 # 0 = false : 1 = true
+  loss: 
+    _target_: utils.loss.SDMLoss # or ClampL1Loss
+  optimizer:
+    mode: 'adam'
+    adam:
+      lr: 0.000001
+      betas:
+        - 0.9
+        - 0.999
+  scheduler:
+    mode: 'ReduceLROnPlateau'
+    ReduceLROnPlateau:
+      patience: 3
+      factor: 0.5
+      min_lr: 0.00001
+test:
+  num_workers: 1
+  batch_size: 2

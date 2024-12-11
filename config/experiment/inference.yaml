@@ -1,0 +1,6 @@
+train:
+  num_workers: 1
+  batch_size: 4
+test:
+  num_workers: 1
+  batch_size: 4

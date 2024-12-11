@@ -1,0 +1,25 @@
+# @package _global_
+
+dist:
+  master_addr: 'localhost'
+  master_port: '29500'
+  mode: 'nccl'
+  gpus: 0 # 0 for not using dist, -1 for using all gpus
+  timeout: 30 # seconds for timeout. In nccl mode, set ~ for not using timeout
+log:
+  use_tensorboard: false
+  use_wandb: true
+  wandb_init_conf:
+    name: ${exp_name}
+    entity: niazoys94
+    project: ${name}
+  summary_interval: 50 # interval of step
+  chkpt_interval: 10 # interval of epoch
+  save_model_each_epoch: false
+  chkpt_dir: 'chkpt'
+load:
+  wandb_load_path: ~
+  network_chkpt_path: ~
+  strict_load: false
+  resume_state_path:  ~
+
