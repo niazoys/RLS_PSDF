@@ -424,16 +424,15 @@ class Base_Model_handler:
 
     def measure_fit(self, y_true, y_pred):
         '''
-            The Idea of the method to have a interface to calculate 
-            accuracy/dice/IoU etc score to evaluate the fit of the model.
-            Needs to be implemented project-wise.
+        
+        To calculate accuracy/dice/IoU etc score to evaluate the 
+        fit of the model.Needs to be implemented project-wise.
+        
         '''
-
         if self.cfg.sdm:
              return get_layer_wise_sdm(y_true=y_true,y_pred=y_pred)
         else:
-            return get_layer_wise_(y_true=y_true,
-                                   y_pred=y_pred)
+            return get_layer_wise_(y_true=y_true,y_pred=y_pred)
 
     def save_best_model(self):
         if is_logging_process():

@@ -1,6 +1,5 @@
 import SimpleITK as sitk
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy
 import torch
 import os

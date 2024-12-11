@@ -16,19 +16,17 @@ class Model_handler_sdm(Base_Model_handler):
 
     def __init__(self, cfg, net_arch, loss_f, writer: Writer, rank=0):
         super().__init__(cfg, net_arch, loss_f, writer, rank=0)
-        # This is for the weight mask in the loss function
         self.hard_sample=[]
         self.running_loss = deque(maxlen=100)
         self.logger=get_logger(self.cfg,
                             os.path.basename(__file__),
                             disable_console=True)
-         # init optimizer
         optimizer_mode = self.cfg.train.optimizer.mode
-        scheduler_mode = self.cfg.train.scheduler.mode
-        
-        
-        self.censoring_threshold = torch.nn.Parameter(torch.tensor(self.cfg.sdm_misc.clamp_delta,dtype=torch.float32))
-    
+        scheduler_mode = self.cfg.train.scheduler.mode 
+        # Learned Clamping of L1/L2 Loss near the boundry 
+        # This has not been used in for the publication!
+        self.censoring_threshold = torch.nn.Parameter(torch.tensor(self.cfg.sdm_misc.clamp_delta,
+                                                                   dtype=torch.float32))
         if cfg.learned_censoring:
             if optimizer_mode == "adam":
                 self.optimizer = torch.optim.Adam(
@@ -45,14 +43,10 @@ class Model_handler_sdm(Base_Model_handler):
 
     def train_model(self, train_loader):
         self.hard_sample_count=0
-
         for model_input, model_target, mask, layer,idx,_ in tqdm(
                 train_loader, leave=False, desc="Training/Batch:",
                 unit='batch'):
-
             _,output=self.optimize_parameters(model_input, model_target, mask)
-
-
             loss = self.log.loss_v
             log_l = self.log.log_l
             mse = self.log.mse
@@ -61,34 +55,26 @@ class Model_handler_sdm(Base_Model_handler):
             train_mae = self.log.train_mae
             train_mvar = self.log.model_var
             self.step += 1
-
-
             if is_logging_process() and (loss > 1e8 or math.isnan(loss)):
                 self.logger.error("Loss exploded to %.02f at step %d!" %
                              (loss, self.step))
                 # raise Exception("Loss exploded")
-
-            self.write_train_summary(self.logger, loss, log_l, mse, train_var, train_sigma, train_mae, train_mvar)
+            self.write_train_summary(self.logger, loss, log_l, mse, train_var, 
+                                     train_sigma, train_mae, train_mvar)
             
             if self.step!=0 and  self.cfg.train.reduce_lr_step is not None:
                self.reduce_lr(self.logger)
-            
+    
             if self.cfg.gaussian_output:
                 output,output_var=output[0],output[1].exp()
 
-            else:
-                pass
-
-             # Get the total and layer wise mean absolute differences
+            # Get the total and layer wise mean absolute differences
             output_layer=sdmToLayer(to_numpy(output.squeeze()))
-            _,_,sample_mad_layer=self.measure_fit(to_numpy(layer.permute(0,1,3,2)),np.expand_dims(output_layer.transpose(0,2,1),axis=1))
-            
-           
-            # Hard Sample Training
+            _,_,sample_mad_layer=self.measure_fit(to_numpy(layer.permute(0,1,3,2)),
+                                                  np.expand_dims(output_layer.transpose(0,2,1),axis=1))
+            # Hard case over Sampling Training
             if self.cfg.sdm_misc.oversample_hardCase:
-                self.train_on_hardSample(sample_mad_layer[:,-1], idx, train_loader)
-                
-        # Clear the cache
+                self.train_on_hardSample(sample_mad_layer[:,-1], idx, train_loader)             
         torch.cuda.empty_cache()
 
     def train_on_hardSample(self, unreduced_error, idx, train_loader):
@@ -110,8 +96,9 @@ class Model_handler_sdm(Base_Model_handler):
                         model_input.append(input) 
                         model_target.append(target) 
                         mask.append(msk)
-
-                    model_input, model_target, mask = torch.stack(model_input), torch.stack(model_target),torch.stack(mask)
+                    
+                    model_input, model_target, mask = (torch.stack(tensor) for tensor in
+                                                        (model_input, model_target, mask))
                     
                     self.optimize_parameters(model_input, model_target, mask)
                     loss = self.log.loss_v
@@ -123,17 +110,18 @@ class Model_handler_sdm(Base_Model_handler):
                     train_mvar = self.log.model_var
                     self.step += 1
                     self.hard_sample_count += 1
-                    self.write_train_summary(self.logger, loss, log_l, mse, train_var, train_sigma, train_mae, train_mvar, is_hard_sample=True)
+                    self.write_train_summary(self.logger, loss, log_l, mse, train_var, 
+                                             train_sigma, train_mae, train_mvar, 
+                                             is_hard_sample=True)
     
     def log_ped_case(self,data_loader,main_list=None):
         '''
-            Log the ped case
+            This just for debug purpose to Log the heavy 
+            pigment epithelial detachment case visualization
         '''
         counter=0
         if main_list is None:
             main_list=[145,170,184,96,269,737,875,925]
-        
-        
         
         for p in range(0,int(len(main_list)/2)):
             sample_list = main_list[p*2:p*2+2]
@@ -144,27 +132,25 @@ class Model_handler_sdm(Base_Model_handler):
                 model_target.append(target) 
                 layer.append(lyr)
 
-            model_input, model_target, layer = torch.stack(model_input), torch.stack(model_target),torch.stack(layer)
-            
-            # self.self.logger.info (f'Input shape{model_input.shape}')  
-            
+            model_input, model_target, layer = (torch.stack(tensor) for tensor in 
+                                                (model_input, model_target, layer))
             with torch.no_grad():
                 output =  self.inference(model_input) 
             if self.cfg.gaussian_output:
                 output,output_var=output[0],to_numpy(output[1])
 
-            model_input,layer_gt,raw_prob=to_numpy(model_input),to_numpy(layer.permute(0,1,3,2)),to_numpy(output)
+            model_input, layer_gt, raw_prob = (to_numpy(tensor) for tensor in 
+                                               (model_input, layer.permute(0, 1, 3, 2), output))
+
             
             del output
             torch.cuda.empty_cache()
 
             for i in range(model_input.shape[0]):
-                input=model_input[i].squeeze()
+                input, y_true, layers_var = (model_input[i].squeeze(),
+                                            layer_gt[i].squeeze(),
+                                            np.zeros_like(layers))   
                 layers=sdmToLayer(np.expand_dims(raw_prob[i].squeeze(),axis=0)).squeeze().T
-                
-                y_true=layer_gt[i].squeeze()
-                layers_var=np.zeros_like(layers)
-                    
                 if self.cfg.gaussian_output:
                     for j in range(layers.shape[0]):
                         for k in range(layers.shape[1]):
@@ -173,10 +159,10 @@ class Model_handler_sdm(Base_Model_handler):
                     layers_sigma=np.sqrt(layers_var.transpose(1,0))
                 else:
                     layers_sigma=None
-                
                 layers[y_true==0] = np.nan
                 y_true[y_true==0]=np.nan
-
+                # 512 is based on the Height of the Images in the Duke data set and 
+                # the external dataset, this needs to be adapted if the img shape changes
                 np_img=show_im(input,layers.transpose(1,0),y_true.transpose(1,0)*512,
                     layers_sigma,outfile=None)
                 self.writer.log_image(np_img, f'PedCase_{main_list[counter]}', self.step)
@@ -189,33 +175,18 @@ class Model_handler_sdm(Base_Model_handler):
         self.net.train()
         self.net = self.net.to(self.cfg.device)
         self.optimizer.zero_grad()
-        
         output=self.run_network(model_input)    
-     
-        # Gaussian weighting
-        # if self.cfg.sdm_misc.gmask_weight:
-        #     rv = norm(loc = 0, scale = self.sigma)
-        #     g_mask = torch.tensor(rv.pdf(np.abs(to_numpy(model_target))))
-        # else:
-        #     g_mask = torch.ones_like(mask)
-            
-        #Loss
-        unreduced_loss = self.loss_f(output, model_target.to(self.device),
-                             mask.to(self.device))
-   
+        unreduced_loss = self.loss_f(output, 
+                                    model_target.to(self.device),
+                                    mask.to(self.device))
         # This is because we need the unreduced 
         # loss for the hard sample training!
         # Reduce the loss along the batch dimension
         loss_v=unreduced_loss.mean()
-        
-        #  if  torch.isnan(unreduced_loss).any():
-        # Update model
         if not torch.isnan(loss_v):
             loss_v.backward()
             self.optimizer.step()
             torch.cuda.empty_cache()
-
-        # Additional metrics goes here
         if self.cfg.gaussian_output:            
             mse = self.mse(output[0], model_target.to(self.device),
                         mask.to(self.device)).mean()
@@ -228,62 +199,49 @@ class Model_handler_sdm(Base_Model_handler):
             train_mae = self.l1(output, model_target.to(self.device),
                             mask.to(self.device)).mean()   
             self.log.train_var = 0
-       
-
-        # set log
-        self.log.loss_v = loss_v.item()
-        self.log.train_mae = train_mae.item()
-        self.log.mse = mse.item()
-
-        self.log.log_l = 0
-       
-        self.log.train_sigma = 0        
-        self.log.model_var = 0
-
         
+        self.log.loss_v, self.log.train_mae, self.log.mse = (loss_v.item(), 
+                                                             train_mae.item(), 
+                                                             mse.item())
+        self.log.log_l = self.log.train_sigma = self.log.model_var = 0
 
         if self.step % self.cfg.train.reduce_lr_step == 0:
             factor = 2 
             self.optimizer = modify_learning_rate(self.optimizer,factor=factor)
             self.logger.info(
                     f'Learning Rate Successfully Reduced by a factor of {factor}')
-
         return unreduced_loss,output
     
     def validate_model(self, val_loader):
         self.net.eval()
-        total_val_loss = 0
-        total_val_mse = 0
-        total_val_var = 0
-        total_val_mae = 0
-        total_val_sigma = 0
-        total_log_l = 0
-        val_loop_len = 0
-        total_MAD_all_layer = 0
-        total_MAD_layer = {'ILM': 0, 'RPEDC': 0, 'BM': 0}
-        std_MAD_layer = {'ILM': 0.0, 'RPEDC': 0.0, 'BM': 0.0}
-        MAD_list_layer = {'ILM': [], 'RPEDC': [], 'BM': []}
+        (total_val_loss,
+         total_val_mse,
+         total_val_var,
+         total_val_mae,
+         total_val_sigma,
+         total_log_l,
+         val_loop_len,
+         total_MAD_all_layer) = [0] * 8
+        keys = ['ILM', 'RPEDC', 'BM']
+        total_MAD_layer = dict.fromkeys(keys, 0.0)
+        std_MAD_layer = dict.fromkeys(keys, 0.0)
+        MAD_list_layer = {key: [] for key in keys}
 
         with torch.no_grad():
             for model_input, model_target, mask,layer,idx,file_name_list in tqdm(val_loader,
                                                         leave=False,
                                                         desc="Testing/Batch:"):
-                
                 output= self.inference(model_input)
-                #Loss
                 loss_v = self.loss_f(output,
                                      model_target.to(self.device),
                                      mask.to(self.cfg.device)).mean()
-
                 if self.cfg.dist.gpus > 0:
                     # Aggregate loss_v from all GPUs. loss_v is set as the sum of all GPUs' loss_v.
                     torch.distributed.all_reduce(loss_v)
                     loss_v /= torch.tensor(float(self.cfg.dist.gpus))
-
                 total_val_loss += loss_v.to("cpu").item()
                 val_loop_len += 1
-                
-                # Additional metrics goes here
+
                 if self.cfg.gaussian_output:
                     output,output_var=output[0],output[1].exp()
                     total_val_var += output_var.mean().item() 
@@ -298,16 +256,17 @@ class Model_handler_sdm(Base_Model_handler):
                 total_val_mae += self.l1(output, model_target.to(self.device),
                             mask.to(self.device)).mean().item()
 
-
                 # Get the total and layer wise mean absolute differences
                 # output_layer=sdmToLayer(to_numpy(output.squeeze()))
                 output_layer=SoftsdmToLayer(to_numpy(output.squeeze()))
-                MAD_layer,MAD_all_layer,_=self.measure_fit(to_numpy(layer.permute(0,1,3,2)),np.expand_dims(output_layer.transpose(0,2,1),axis=1))
+                MAD_layer,MAD_all_layer,_=self.measure_fit(to_numpy(layer.permute(0,1,3,2)),
+                                                           np.expand_dims(output_layer.transpose(0,2,1),axis=1))
                 total_MAD_all_layer+=MAD_all_layer
                             
                 for layer_name in self.layers:
                     total_MAD_layer[layer_name]+=MAD_layer[layer_name]
                     MAD_list_layer[layer_name].append(MAD_layer[layer_name])
+                
                 # Save the visual results during inference
                 # The cfg parameter shall be overriden from
                 # the inference script to avoid accidental
@@ -317,7 +276,8 @@ class Model_handler_sdm(Base_Model_handler):
                                              y_pred=(output_layer),
                                              y_true=to_numpy(layer.permute(0,1,3,2)),
                                              raw_prob=to_numpy(output),
-                                             output_var=None if output_var==None else to_numpy(output),idx=idx,file_name_list=file_name_list)
+                                             output_var=None if output_var==None else to_numpy(output),
+                                             idx=idx,file_name_list=file_name_list)
                     self.im_counter += 1
                     self.logger.info(f'Image {self.im_counter} saved')
 
@@ -333,11 +293,6 @@ class Model_handler_sdm(Base_Model_handler):
             # Execute scheduler on validation loss
             if self.cfg.train.use_scheduler == 1:
                 self.scheduler.step(total_val_loss)
-
-            # Saves model with best accuracy
-            # if (total_MAD_all_layer / val_loop_len) < self.last_val_loss:
-            #     self.save_best_model()
-            #     self.last_val_loss = total_MAD_all_layer / val_loop_len
 
             # Write the summary to WnB  
             total_val_mvar=0
