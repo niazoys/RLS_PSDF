@@ -1,0 +1,99 @@
+name: SDM_inference
+exp_name: null
+work_dir: ${hydra:runtime.cwd}
+output_dir: ${work_dir}/outputs/${now:%Y-%m-%d}/${exp_name}-${now:%Y-%m-%d_%H-%M-%S}
+working_dir: ${work_dir}
+device: cpu
+random_seed: 1212
+model_obj:
+  _target_: model.unet_plusplus_sdm_big.Unet_sdm
+handler_obj:
+  _target_: model.model_handlers.model_handler_sdm.Model_handler_sdm
+loss_obj:
+  _target_: utils.loss.Clamp_GNLL
+debug_mode: 0
+learned_censoring: false
+gaussian_output: true
+unsigned_distance: true
+testTime_dropout: false
+inference_mode: false
+testing_noise: false
+artifact: false
+validation_time_artifact: false
+sdm: true
+direct_misc:
+  oversample_hardCase: true
+  groupNorm: false
+  use_multi_head: true
+sdm_misc:
+  groupNorm: false
+  oversample_hardCase: true
+  clamp_delta: 24
+  use_multi_head: true
+data:
+  data_root_dir: ${work_dir}/data/
+  data_root_dir_all: ${work_dir}/data/
+  file_format: '*.file_extension'
+  use_background_generator: false
+  divide_dataset_per_gpu: false
+model:
+  num_class: 3
+  gaussian_output: true
+  out_act: false
+  use_input_instance_norm: true
+train:
+  use_all_data: false
+  use_half_size_img: true
+  affine_transform: false
+  artifact_prob: 1.0
+  num_slice_per_vol: 70
+  num_patients_train: 100
+  num_patients_val: 10
+  num_workers: 1
+  batch_size: 2
+  num_epoch: 350
+  reduce_lr_step: 100000
+  use_scheduler: 1
+  loss:
+    _target_: utils.loss.SDMLoss
+  optimizer:
+    mode: adam
+    adam:
+      lr: 1.0e-06
+      betas:
+      - 0.9
+      - 0.999
+  scheduler:
+    mode: ReduceLROnPlateau
+    ReduceLROnPlateau:
+      patience: 3
+      factor: 0.5
+      min_lr: 1.0e-05
+test:
+  num_workers: 1
+  batch_size: 2
+gen_dataset:
+  _target_: dataloader.dataloader.Dataset_
+dist:
+  master_addr: localhost
+  master_port: '29500'
+  mode: nccl
+  gpus: 0
+  timeout: 30
+log:
+  use_tensorboard: false
+  use_wandb: true
+  wandb_init_conf:
+    name: ${exp_name}
+    entity: niazoys94
+    project: ${name}
+  summary_interval: 50
+  chkpt_interval: 10
+  save_model_each_epoch: false
+  chkpt_dir: chkpt
+load:
+  wandb_load_path: null
+  network_chkpt_path: null
+  strict_load: false
+  resume_state_path: null
+experiment: {}

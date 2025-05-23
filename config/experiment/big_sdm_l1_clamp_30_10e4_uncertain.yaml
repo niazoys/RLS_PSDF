@@ -55,11 +55,10 @@ sdm_misc:
   use_multi_head: True
 
 data:
-  # data_root_dir: ${work_dir}/data/new_data/
-  data_root_dir: ${work_dir}/data/external/
+  data_root_dir: ${work_dir}/data/
 
 log:
   save_model_each_epoch: True
 
 load:
-  resume_state_path: ~
+  resume_state_path: 'C:/Users/Niazo/Desktop/UvADoc/Code/public_code_layer_segmentation/GrandChallenge/weights.state'

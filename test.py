@@ -13,8 +13,7 @@ from tqdm import tqdm
 
 from dataloader.dataloader import create_dataloader
 from dataset.datasets import DataloaderMode
-from model.model_handler import Model_handler
-from model.net import UnetBart
+from model.model_handlers import Model_handler
 from utils.utils import (get_logger, is_logging_process, print_config,
                          set_random_seed,modify_learning_rate)
 from utils.writer import Writer

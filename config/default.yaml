@@ -70,7 +70,7 @@ sdm_misc:
   use_multi_head: True
   
 data:
-  data_root_dir: ${work_dir}/data/new_data/
+  data_root_dir: ${work_dir}/data/
 
 hydra:
   run:

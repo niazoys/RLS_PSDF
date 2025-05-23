@@ -8,7 +8,7 @@ import scipy.io as io
 from torch.utils.data import Dataset
 from omegaconf.dictconfig import DictConfig
 from torchvision.transforms.functional import resize, InterpolationMode, to_tensor
-from utils.artifacts import ArtificialArtifact
+# from utils.artifacts import ArtificialArtifact
 from monai.transforms import (Compose, RandGaussianNoise, RandAffined,Resized,
                               RandAdjustContrast, RandShiftIntensity, 
                               RandGaussianSmooth,RandSpatialCropd,NormalizeIntensity)
@@ -18,6 +18,71 @@ import json
 import torch.multiprocessing
 torch.multiprocessing.set_sharing_strategy('file_system')
 from collections import OrderedDict
+import random
+
+def create_dataset_partition(data_dir, output_file, train_ratio=0.7, val_ratio=0.10, test_ratio=0.20, seed=42):
+    """
+    Create a dataset partition for OCT subjects and save it to a JSON file.
+    
+    Args:
+        data_dir (str): Directory containing the subject files
+        output_file (str): Path to output JSON file
+        train_ratio (float): Proportion of data for training
+        val_ratio (float): Proportion of data for validation
+        test_ratio (float): Proportion of data for testing
+        seed (int): Random seed for reproducibility
+    """
+    # Ensure ratios sum to 1
+    assert abs(train_ratio + val_ratio + test_ratio - 1.0) < 1e-6, "Ratios must sum to 1"
+    data_dir = os.path.join(data_dir, 'images')
+    # Get all subject file names
+    all_files = []
+    for item in os.listdir(data_dir):
+        if item.startswith("HEALTHY") and "slice" in item:
+            all_files.append(item)
+    
+    # Extract unique subject IDs
+    subjects = set()
+    for filename in all_files:
+        # Extract the subject ID (e.g., "HEALTHY101")
+        subject_id = filename.split('_')[0]
+        subjects.add(subject_id)
+    
+    subjects = sorted(list(subjects))
+    
+    # Set random seed for reproducibility
+    random.seed(seed)
+    random.shuffle(subjects)
+    
+    # Calculate split indices
+    n_subjects = len(subjects)
+    n_train = int(n_subjects * train_ratio)
+    n_val = int(n_subjects * val_ratio)
+    
+    # Split subjects
+    train_subjects = subjects[:n_train]
+    val_subjects = subjects[n_train:n_train+n_val]
+    test_subjects = subjects[n_train+n_val:]
+    
+    # Create mapping of files to their partition
+    partition = {
+        "train": train_subjects,
+        "val": val_subjects,
+        "test": test_subjects,
+    }
+    
+    # Save to JSON file
+    with open(output_file, 'w') as f:
+        json.dump(partition, f, indent=4)
+    
+    print(f"Dataset partition saved to {output_file}")
+    print(f"Train: {len(train_subjects)} subjects")
+    print(f"Validation: {len(val_subjects)} subjects")
+    print(f"Test: {len(test_subjects)} subjects")
+    
+    return partition
+
+
 
 class DataloaderMode(Enum):
     train = auto()
@@ -25,6 +90,136 @@ class DataloaderMode(Enum):
     inference = auto()
     validation = auto()
     TBD = auto()
+
+
+class AMCDataset(Dataset):
+
+    def __init__(self,
+                 cfg: DictConfig = None,
+                 mode: DataloaderMode = DataloaderMode.TBD) -> None:
+        super().__init__()
+        self.cfg = cfg
+        self.mode = mode
+        self.DEVICE = cfg.device
+        self.external = True
+        self.trim_offset = 150
+        
+        # self.artifacts=ArtificialArtifact(prob=1)
+        self.artifacts= None
+
+        self.data_set_path = cfg.data.data_root_dir
+        print(f"Using selected data in {self.path}")
+
+        self.imgs, self.layer_maps = [], []
+
+        self.transformation = Compose([
+            NormalizeIntensity(nonzero=False, channel_wise=True),
+            RandGaussianNoise(prob=0.25, std=0.15),
+            RandAdjustContrast(gamma=(.75, 1.5), prob=0.20),
+            RandShiftIntensity(offsets=(0.05, 0.15)),
+            RandGaussianSmooth()
+        ])
+
+        self.affineTransform = Compose([RandAffined(keys=['image', 'layer_map','mask'],
+            rotate_range=(-0.5, 0.5),
+            shear_range=(-0.001, 0.001),
+            translate_range=(-40,40),
+            mode=['area','bilinear','nearest'],
+            padding_mode="nearest",
+            prob=0.2)   
+            ])
+        
+        self.resize=Compose([Resized(keys=['image','layer_map','mask'],spatial_size=(512,512),mode=('area','bilinear','nearest'))])
+        
+        # Load partition information
+        partition_file = os.path.join(cfg.data.data_root_dir, 'dataset_partition.json')
+        if os.path.exists(partition_file):
+            with open(partition_file, 'r') as f:
+                partition = json.load(f)
+        else:
+            print(f"Partition file {partition_file} not found. Creating a new one.")
+            partition = create_dataset_partition(cfg.data.data_root_dir, partition_file)
+        
+        # Get subject IDs for the current mode
+        if mode == DataloaderMode.train:
+            subject_ids = partition['train']
+        elif mode == DataloaderMode.validation:
+            subject_ids = partition['val']
+        elif mode == DataloaderMode.test:
+            subject_ids = partition['test']
+        else:
+            raise ValueError("Invalid dataset mode!")
+        
+        # Get all files from data directory
+        all_files = os.listdir(cfg.data.data_root_dir+'/images/')
+
+         # Filter files that belong to the current partition
+        self.img_files = [
+            filename for filename in all_files 
+            if any(filename.startswith(subject_id) for subject_id in subject_ids)
+        ]
+
+
+    def __len__(self):
+        return len(self.img_files)
+
+    def __getitem__(self, idx):
+        
+        img = np.load(
+            os.path.join(self.data_set_path, 'images', self.img_files[idx]))
+        
+        layer_map = np.load(
+            os.path.join(self.data_set_path, 'sdf',
+                        self.img_files[idx][:-4] + '_sdf.npy'))
+        mask = np.load(
+            os.path.join(self.data_set_path, 'sdm',
+                        self.img_files[idx][:-4] + '_sdm_mask.npy'))
+        layer = np.load(
+        os.path.join(self.data_set_path, 'labels',
+                        self.img_files[idx][:-4] + '_label.npy'))
+        
+
+        img = torch.from_numpy(img.copy()).type(torch.FloatTensor)
+        layer_map = torch.from_numpy(layer_map.copy()).type(torch.FloatTensor)
+        mask = torch.from_numpy(mask.copy()).type(torch.FloatTensor).repeat(3,1,1)
+        layer = torch.from_numpy(layer.copy()).type(torch.FloatTensor)
+
+
+
+        # Use the 512x512 image as input
+        if self.cfg.train.use_half_size_img:
+            img = img[:,:,self.trim_offset:-self.trim_offset]
+            layer_map = layer_map[:,:,self.trim_offset:-self.trim_offset]
+            mask = mask[:,:,self.trim_offset:-self.trim_offset]
+            
+            layer = layer[:,self.trim_offset:-self.trim_offset,:]
+            out_dict=self.resize({'image': img, 'layer_map': layer_map,'mask':mask})
+            img,layer_map,mask=out_dict['image'],out_dict['layer_map'],torch.ceil(out_dict['mask'])
+            layer= resize(layer,size=[512,3],interpolation=InterpolationMode.NEAREST)
+        
+        if self.cfg.validation_time_artifact:
+            try:
+                print("Prediction with Synthetic Noise!!")
+                img, _, _ = self.artifacts(img.numpy(),np.expand_dims(layer.numpy().T,axis=0)*512)
+                img = torch.from_numpy(img.copy()).type(torch.FloatTensor) 
+            except:
+                print("Error in Artifact")
+                pass
+
+        if self.mode == DataloaderMode.train:
+            img = self.transformation(img)
+            # if self.cfg.train.affine_transform:
+            #     out_dict=self.affineTransform({'image': img, 'layer': layer_map,'mask':mask})
+            #     img,layer_map,mask=out_dict['image'],out_dict['layer'],out_dict['mask']
+            
+     
+            
+        return img, layer_map, mask, layer,idx,self.img_files[idx][:-4]
+
+
+
+
+
 
 
 class DukeOCTLayerDatasetSDM(Dataset):
@@ -500,9 +695,9 @@ class DukeOCTLayerDataset3d(Dataset):
         
         return img, layer_map/512, mask
     
-@hydra.main(version_base="1.1", config_path="/home/mislam/retinal_layers_segmentation/retinal_layers_segmentation/config", config_name="default")
+@hydra.main(version_base="1.1", config_path=r"C:\Users\Niazo\Desktop\RLS_PSDF\config", config_name="default")
 def main(hydra_cfg):
-    ds = DukeOCTLayerDataset(cfg=hydra_cfg, mode=DataloaderMode.test,sdm=True)
+    ds = AMCDataset(cfg=hydra_cfg, mode=DataloaderMode.train)
     # for i in range(100):
     p=np.random.randint(0,15)
     img, layer_map, mask = ds.__getitem__(p)
@@ -510,7 +705,7 @@ def main(hydra_cfg):
     # layer_map[mask == 0] = torch.nan
     # layer_map = layer_map.permute(2,1,0,3).squeeze(0)
     # mask = mask.permute(2,1,0,3).squeeze(0)
-    # print(mask.shape, layer_map.shape,img.shape)   
+    print(mask.shape, layer_map.shape,img.shape)   
   
 
     # n=np.random.randint(0,15)
