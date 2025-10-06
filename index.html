@@ -203,4 +203,72 @@
         <h2 class="title is-3 has-text-centered">Results: Accuracy and Insightful Uncertainty</h2>
         <div class="content has-text-justified">
           <p>
-            Our geom
+            Our geometric approach pays off. On both an internal dataset and a challenging external dataset from a different scanner, our pSDF method significantly outperforms regression-based techniques, achieving a <strong>2.4× improvement</strong> in average Mean Absolute Error on the external set. The lower standard deviation also shows our predictions are more consistent and reliable.
+          </p>
+
+          <!-- Figure: Uncertainty examples -->
+          <p class="has-text-centered">
+            <img src="./static/images/mcdo_ensemble_uncertainty_example.png" alt="Uncertainty examples and comparisons"
+                 style="max-width: 900px; width: 100%; border-radius: 12px; border: 1px solid #e5e7eb;">
+          </p>
+          <p class="is-size-7 has-text-grey has-text-centered" style="margin-top:.25rem;">
+            Figure 4 — pSDF highlights ambiguous or pathological regions with higher variance and avoids spurious uncertainty seen with MCDO/Ensembles.
+          </p>
+
+          <p>
+            We also compare against prior studies on the internal dataset; while train/test splits differ, SDF-based modeling trends favor improved thin-layer fidelity and stability.
+          </p>
+
+          <!-- Figure: MAE comparison -->
+          <p class="has-text-centered">
+            <img src="./static/images/mae_comparison_sidebar.png" alt="MAE comparison with prior work"
+                 style="max-width: 900px; width: 100%; border-radius: 12px; border: 1px solid #e5e7eb;">
+          </p>
+          <p class="is-size-7 has-text-grey has-text-centered" style="margin-top:.25rem;">
+            Figure 5 — MAE comparison with prior work on the internal dataset (indicative due to differing splits); lower is better.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- BibTeX -->
+<section class="section" id="BibTeX">
+  <div class="container is-max-desktop content">
+    <h2 class="title is-3 has-text-centered">BibTeX</h2>
+  <pre><code>@inproceedings{islam2024psdf,
+  author    = {Islam, Mohammad Mohaiminul and de Vente, Coen and Liefers, Bart and Klaver, Caroline and Bekkers, Erik J and S{\'a}nchez, Clara I.},
+  title     = {Uncertainty-aware retinal layer segmentation in OCT through probabilistic signed distance functions},
+  booktitle = {Medical Imaging with Deep Learning (MIDL)},
+  year      = {2024},
+  url       = {https://arxiv.org/abs/2412.04935}
+}</code></pre>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="content has-text-centered">
+      <a class="icon-link" href="https://arxiv.org/abs/2412.04935" target="_blank">
+        <i class="ai ai-arxiv"></i>
+      </a>
+      <a class="icon-link" href="https://github.com/niazoys/RLS_PSDF" target="_blank">
+        <i class="fab fa-github"></i>
+      </a>
+    </div>
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content has-text-centered">
+          <p>
+            Website skeleton adapted from the <a href="https://github.com/nerfies/nerfies.github.io">Nerfies project page</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
