@@ -1,253 +1,270 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <meta name="description" content="Uncertainty-aware retinal layer segmentation in OCT through probabilistic signed distance functions (pSDF).">
-  <meta name="keywords" content="retina, OCT, segmentation, signed distance function, uncertainty, pSDF, MIDL 2024">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>pSDF: Uncertainty-aware Retinal Layer Segmentation</title>
+  <meta charset="utf-8">
+  <meta name="description" content="Uncertainty-aware retinal layer segmentation in OCT through probabilistic signed distance functions (pSDF).">
+  <meta name="keywords" content="retina, OCT, segmentation, signed distance function, uncertainty, pSDF, MIDL 2024">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>pSDF: Uncertainty-aware Retinal Layer Segmentation</title>
 
-  <!-- Global site tag (gtag.js) - Google Analytics (optional; remove if not needed) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PYVRSFMDRL"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-PYVRSFMDRL');
-  </script>
+  <!-- Global site tag (gtag.js) - Google Analytics (optional; remove if not needed) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PYVRSFMDRL"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-PYVRSFMDRL');
+  </script>
 
-  <!-- Fonts used by the template -->
-  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+  <!-- Fonts used by the template -->
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
 
-  <!-- Nerfies template assets (you said you already have these files) -->
-  <link rel="stylesheet" href="./static/css/bulma.min.css">
-  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
-  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
-  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
-  <link rel="stylesheet" href="./static/css/index.css">
-  <link rel="icon" href="./static/images/favicon.svg">
+  <!-- Nerfies template assets (assuming these files are in a ./static/ folder) -->
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <link rel="icon" href="./static/images/favicon.svg">
 
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  <script defer src="./static/js/fontawesome.all.min.js"></script>
-  <script src="./static/js/bulma-carousel.min.js"></script>
-  <script src="./static/js/bulma-slider.min.js"></script>
-  <script src="./static/js/index.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script src="./static/js/index.js"></script>
 
-  <!-- MathJax for equations -->
-  <script>
-    window.MathJax = {
-      tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']],
-        packages: {'[+]': ['ams']},
-        tags: 'none'
-      },
-      loader: { load: ['[tex]/ams'] },
-      chtml: { scale: 0.97, matchFontHeight: false },
-      options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
-    };
-  </script>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <!-- MathJax for equations -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        packages: {'[+]': ['ams']},
+        tags: 'none'
+      },
+      loader: { load: ['[tex]/ams'] },
+      chtml: { scale: 0.97, matchFontHeight: false },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
 
 <!-- Navbar (kept minimal) -->
 <nav class="navbar" role="navigation" aria-label="main navigation">
-  <div class="navbar-brand">
-    <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
-      <span aria-hidden="true"></span>
-      <span aria-hidden="true"></span>
-      <span aria-hidden="true"></span>
-    </a>
-  </div>
-  <div class="navbar-menu">
-    <div class="navbar-start" style="flex-grow: 1; justify-content: center;">
-      <a class="navbar-item" href="#">
-        <span class="icon"><i class="fas fa-home"></i></span>
-      </a>
-    </div>
-  </div>
+  <div class="navbar-brand">
+    <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+    </a>
+  </div>
+  <div class="navbar-menu">
+    <div class="navbar-start" style="flex-grow: 1; justify-content: center;">
+      <a class="navbar-item" href="#">
+        <span class="icon"><i class="fas fa-home"></i></span>
+      </a>
+    </div>
+  </div>
 </nav>
 
 <!-- Title / Authors -->
 <section class="hero">
-  <div class="hero-body">
-    <div class="container is-max-desktop">
-      <div class="columns is-centered">
-        <div class="column has-text-centered">
-          <h1 class="title is-1 publication-title">
-            Uncertainty-aware Retinal Layer Segmentation through Probabilistic Signed Distance Functions
-          </h1>
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">
+            Uncertainty-aware Retinal Layer Segmentation through Probabilistic Signed Distance Functions
+          </h1>
 
-          <div class="is-size-5 publication-authors">
-            <span class="author-block"><a href="#">Mohammad Mohaiminul Islam</a><sup>1,2</sup>,</span>
-            <span class="author-block"><a href="#">Coen de Vente</a><sup>1,2</sup>,</span>
-            <span class="author-block"><a href="#">Bart Liefers</a><sup>3</sup>,</span>
-            <span class="author-block"><a href="#">Caroline Klaver</a><sup>3</sup>,</span>
-            <span class="author-block"><a href="#">Erik J Bekkers</a><sup>1</sup>,</span>
-            <span class="author-block"><a href="#">Clara I. Sánchez</a><sup>1,2</sup></span>
-          </div>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><a href="#">Mohammad Mohaiminul Islam</a><sup>1,2</sup>,</span>
+            <span class="author-block"><a href="#">Coen de Vente</a><sup>1,2</sup>,</span>
+            <span class="author-block"><a href="#">Bart Liefers</a><sup>3</sup>,</span>
+            <span class="author-block"><a href="#">Caroline Klaver</a><sup>3</sup>,</span>
+            <span class="author-block"><a href="#">Erik J Bekkers</a><sup>1</sup>,</span>
+            <span class="author-block"><a href="#">Clara I. Sánchez</a><sup>1,2</sup></span>
+          </div>
 
-          <div class="is-size-5 publication-authors">
-            <span class="author-block"><sup>1</sup>Informatics Institute, University of Amsterdam</span>
-            <span class="author-block"><sup>2</sup>Amsterdam UMC</span>
-            <span class="author-block"><sup>3</sup>Erasmus MC</span>
-          </div>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><sup>1</sup>Informatics Institute, University of Amsterdam</span>
+            <span class="author-block"><sup>2</sup>Amsterdam UMC</span>
+            <span class="author-block"><sup>3</sup>Erasmus MC</span>
+          </div>
 
-          <div class="column has-text-centered">
-            <div class="publication-links">
-              <span class="link-block">
-                <a href="https://arxiv.org/abs/2412.04935" class="external-link button is-normal is-rounded is-dark" target="_blank">
-                  <span class="icon"><i class="ai ai-arxiv"></i></span><span>arXiv</span>
-                </a>
-              </span>
-              <span class="link-block">
-                <a href="https://github.com/niazoys/RLS_PSDF" class="external-link button is-normal is-rounded is-dark" target="_blank">
-                  <span class="icon"><i class="fab fa-github"></i></span><span>Code</span>
-                </a>
-              </span>
-            </div>
-            <p class="is-size-6 has-text-grey mt-3"><strong>MIDL 2024</strong></p>
-          </div>
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <span class="link-block">
+                <a href="https://arxiv.org/abs/2412.04935" class="external-link button is-normal is-rounded is-dark" target="_blank">
+                  <span class="icon"><i class="ai ai-arxiv"></i></span><span>arXiv</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="https://github.com/niazoys/RLS_PSDF" class="external-link button is-normal is-rounded is-dark" target="_blank">
+                  <span class="icon"><i class="fab fa-github"></i></span><span>Code</span>
+                </a>
+              </span>
+            </div>
+            <p class="is-size-6 has-text-grey mt-3"><strong>MIDL 2024</strong></p>
+          </div>
 
-        </div>
-      </div>
-    </div>
-  </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
-<!-- Teaser (image instead of video) -->
+<!-- Teaser -->
 <section class="hero teaser">
-  <div class="container is-max-desktop">
-    <div class="hero-body has-text-centered">
-      <img src="https://i.imgur.com/vH9Z3tM.png" alt="pSDF qualitative examples"
-           style="max-width: 900px; width: 100%; border-radius: 12px; border: 1px solid #e5e7eb;">
-      <h2 class="subtitle has-text-centered" style="margin-top: .75rem;">
-        Our method (pSDF) accurately segments retinal layers while highlighting areas of high uncertainty
-        (dotted lines) in pathological or noisy regions.
-      </h2>
-    </div>
-  </div>
+  <div class="container is-max-desktop">
+    <div class="hero-body has-text-centered">
+        <img src="https://i.imgur.com/s6E6R6n.png" alt="Qualitative comparison of segmentation methods"
+             style="max-width: 900px; width: 100%; border-radius: 12px; border: 1px solid #e5e7eb;">
+      <h2 class="subtitle has-text-centered" style="margin-top: .75rem;">
+        Our method accurately traces retinal layers even in severe pathological cases, such as drusen (top rows) and Pigment Epithelial Detachment (bottom rows), where other methods struggle.
+      </h2>
+    </div>
+  </div>
 </section>
 
 <!-- Content -->
 <section class="section">
-  <div class="container is-max-desktop">
+  <div class="container is-max-desktop">
 
-    <!-- Abstract -->
-    <div class="columns is-centered has-text-centered">
-      <div class="column is-four-fifths">
-        <h2 class="title is-3">Abstract</h2>
+    <!-- Abstract -->
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            Accurately outlining the layers of the retina from OCT scans is crucial for diagnosing eye diseases, but it's a major challenge for automated systems. When layers are thin or distorted by disease, standard deep learning models often produce inaccurate or disconnected boundaries. We introduce a new method that represents retinal layers not as a collection of pixels, but as a continuous geometric shape defined by a Probabilistic Signed Distance Function (pSDF). This approach allows our model to learn the underlying morphology of the layers, leading to significantly more precise segmentations. Crucially, the probabilistic nature of our model allows it to express its own uncertainty, highlighting ambiguous or pathological regions. This provides a valuable, data-driven signal for clinicians and a key step towards automatically characterizing retinal layer integrity to track disease progression.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Method -->
+    <div class="columns is-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3 has-text-centered">The Problem: Pixels vs. Geometry</h2>
         <div class="content has-text-justified">
-          <p>
-            We present a new approach for uncertainty-aware retinal layer segmentation in Optical Coherence Tomography (OCT)
-            scans using probabilistic signed distance functions (SDF). Traditional methods encounter difficulties in precise
-            segmentation and lack geometrical grounding. To address these shortcomings, our methodology refines segmentation
-            by predicting an SDF that parameterizes the retinal layer shape. We further enhance the framework by integrating
-            probabilistic modeling, applying Gaussian distributions to encapsulate the uncertainty in the shape parameterization.
-            This ensures a robust representation of retinal morphology even with ambiguous input or noise. Both quantitative
-            and qualitative evaluations demonstrate superior performance when compared to other methods, offering a key step
-            towards characterizing layer integrity for monitoring disease progression.
-          </p>
+            <p>
+                Traditional deep learning approaches struggle with the unique challenges of retinal OCT scans because they often fail to capture the continuous, geometric nature of the layers, leading to critical errors. <strong>Pixel-wise classification</strong>, for example, treats segmentation as a coloring problem. When layers are extremely thin—sometimes only one pixel wide—this method often fails, resulting in the broken, disconnected boundaries seen below. To fix this, <strong>regression methods</strong> predict a single Y-coordinate for each vertical column, ensuring a continuous line. However, this approach loses all geometric context by collapsing an entire column of rich data into one point, making it less accurate around complex pathological shapes.
+            </p>
         </div>
-      </div>
-    </div>
 
-    <!-- Method -->
-    <div class="columns is-centered">
-      <div class="column is-four-fifths">
-        <h2 class="title is-3 has-text-centered">Method</h2>
-        <div class="content has-text-justified">
-          <p>
-            Instead of classifying pixels or regressing points, we teach our model a continuous, geometric representation of the layer boundary.
-            The model learns to output a Signed Distance Function (SDF), a map where every pixel's value is its distance to the boundary.
-            The layer itself is the zero-level contour.
-          </p>
-
-          <p class="has-text-centered">
-            <img src="https://i.imgur.com/5qJ6g9M.png" alt="SDF schematic"
-                 style="max-width: 850px; width: 100%; border-radius: 12px; border: 1px solid #e5e7eb;">
-          </p>
-
-          <p>
-            Crucially, we make this probabilistic. The network predicts not just one distance value, but a Gaussian distribution.
-            This distribution is defined by a mean, $\mu(x,y)$, and a standard deviation, $\sigma(x,y)$, which tells us how certain the
-            model is about the layer's location at every point.
-          </p>
-
-          <p class="has-text-centered">
-            $$ p(d(x,y) \mid I, \theta) = \mathcal{N}\!\left(\mu(x,y),\, \sigma(x,y)^2\right) $$
-          </p>
-
-          <p>
-            Thanks to the Eikonal property of SDFs, this uncertainty in <em>distance</em> (represented by $\sigma$) directly translates to
-            uncertainty in the layer's <em>physical location</em>, giving us a powerful tool for identifying ambiguous or pathological regions.
-          </p>
+        <!-- Side-by-Side Comparison Images -->
+        <div class="columns is-vcentered" style="margin-top: 1.5rem;">
+            <!-- Column 1: Pixel-wise Failure Image -->
+            <div class="column">
+                <div class="has-text-centered">
+                    <img src="https://i.imgur.com/z1sJb3T.png" alt="Example of disconnected boundaries from pixel-wise classification" style="border-radius: 8px; border: 1px solid #e5e7eb;">
+                     <p class="is-size-7 has-text-grey mt-1"><em><strong>Pixel-wise Failure:</strong> Broken, disconnected boundaries.</em></p>
+                </div>
+            </div>
+            <!-- Column 2: Regression Failure Image -->
+            <div class="column">
+                 <div class="has-text-centered">
+                    <img src="https://i.imgur.com/2bCdFfG.png" alt="Example of inaccurate regression-based segmentation" style="border-radius: 8px; border: 1px solid #e5e7eb;">
+                     <p class="is-size-7 has-text-grey mt-1"><em><strong>Regression Failure:</strong> Inaccurate tracing of complex shapes.</em></p>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Results -->
-    <div class="columns is-centered">
-      <div class="column is-four-fifths">
-        <h2 class="title is-3 has-text-centered">Results</h2>
-        <div class="content has-text-justified">
-          <p>
-            Our SDF-based methods trace layers with far greater precision, especially in challenging cases with structural damage from disease.
-            The model's uncertainty naturally increases in areas where the layer is disrupted or hard to see, acting as a potential biomarker for pathology.
-          </p>
+        <h2 class="title is-3 has-text-centered" style="margin-top:3rem;">Our Approach: Probabilistic Shapes</h2>
+        <div class="content has-text-justified">
+          <p>
+            We propose a new way of thinking: instead of predicting pixels, our model learns a continuous function that represents the shape of the layer boundary. This is called a <strong>Signed Distance Function (SDF)</strong>. For any point $(x, y)$ in the image, the SDF tells you its exact distance to the nearest boundary. The boundary itself is simply the contour where the distance is zero. This provides a much richer, geometrically-grounded signal for the model to learn from.
+          </p>
 
-          <p class="has-text-centered">
-            <img src="https://i.imgur.com/s6E6R6n.png" alt="Qualitative comparison"
-                 style="max-width: 900px; width: 100%; border-radius: 12px; border: 1px solid #e5e7eb;">
-          </p>
+          <p class="has-text-centered">
+            <img src="https://i.imgur.com/5qJ6g9M.png" alt="SDF schematic"
+                 style="max-width: 850px; width: 100%; border-radius: 12px; border: 1px solid #e5e7eb;">
+          </p>
 
-          <p class="has-text-grey has-text-centered" style="margin-top:.25rem;">
-            Comparison of ground truth, regression-based methods (REGR, pREGR), and our methods (SDF, pSDF) on challenging OCT scans.
-          </p>
-        </div>
-      </div>
-    </div>
+          <p>
+            But real-world medical images are noisy and pathologies create ambiguity. A single, deterministic answer isn't enough. So, we make our SDF <strong>probabilistic</strong>. The network doesn't just predict a single distance value; it predicts an entire Gaussian distribution for that distance, defined by a mean, $\mu(x,y)$, and a standard deviation, $\sigma(x,y)$. This standard deviation captures the model's uncertainty at every single point in the image.
+          </p>
 
-  </div>
+          <p class="has-text-centered">
+            $$ p(d(x,y) \mid I, \theta) = \mathcal{N}\!\left(\mu(x,y),\, \sigma(x,y)^2\right) $$
+          </p>
+
+          <p>
+            The elegance of this approach is that, due to a property of SDFs known as the Eikonal constraint, the uncertainty in the predicted <em>distance</em> ($\sigma$) directly translates into uncertainty in the layer's physical <em>location</em>. This gives us a powerful, principled way to identify and quantify regions where the segmentation might be unreliable.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="columns is-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3 has-text-centered">Results: Accuracy and Insightful Uncertainty</h2>
+        <div class="content has-text-justified">
+          <p>
+            Our geometric approach pays off. On both an internal dataset and a challenging external dataset from a different scanner, our pSDF method significantly outperforms regression-based techniques, achieving a <strong>2.4x improvement</strong> in average Mean Absolute Error on the external set. The lower standard deviation also shows our predictions are more consistent and reliable.
+          </p>
+
+          <p class="has-text-centered">
+            <img src="https://i.imgur.com/uR0J0v8.png" alt="Quantitative results chart"
+                 style="max-width: 500px; width: 100%; border-radius: 12px; border: 1px solid #e5e7eb;">
+          </p>
+
+           <p>
+            More importantly, the uncertainty predicted by our model is not random noise—it's meaningful. We tested our pSDF model on images with naturally occurring pathologies and on images where we artificially added common OCT artifacts like shadows and speckle noise. As shown below, the model consistently and correctly assigns higher uncertainty (a larger variance) to these corrupted or ambiguous regions. This transforms "model uncertainty" from a simple confidence score into a potential biomarker, flagging areas of compromised layer integrity for clinical review.
+           </p>
+
+          <p class="has-text-centered">
+            <img src="https://i.imgur.com/vH9Z3tM.png" alt="Qualitative uncertainty examples"
+                 style="max-width: 900px; width: 100%; border-radius: 12px; border: 1px solid #e5e7eb;">
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </section>
 
 <!-- BibTeX -->
 <section class="section" id="BibTeX">
-  <div class="container is-max-desktop content">
-    <h2 class="title is-3 has-text-centered">BibTeX</h2>
-    <pre><code>@inproceedings{islam2024psdf,
-  author    = {Islam, Mohammad Mohaiminul and de Vente, Coen and Liefers, Bart and Klaver, Caroline and Bekkers, Erik J and S{\'a}nchez, Clara I.},
-  title     = {Uncertainty-aware retinal layer segmentation in OCT through probabilistic signed distance functions},
-  booktitle = {Medical Imaging with Deep Learning (MIDL)},
-  year      = {2024},
-  url       = {https://arxiv.org/abs/2412.04935}
+  <div class="container is-max-desktop content">
+    <h2 class="title is-3 has-text-centered">BibTeX</h2>
+    <pre><code>@inproceedings{islam2024psdf,
+  author    = {Islam, Mohammad Mohaiminul and de Vente, Coen and Liefers, Bart and Klaver, Caroline and Bekkers, Erik J and S{\'a}nchez, Clara I.},
+  title     = {Uncertainty-aware retinal layer segmentation in OCT through probabilistic signed distance functions},
+  booktitle = {Medical Imaging with Deep Learning (MIDL)},
+  year      = {2024},
+  url       = {https://arxiv.org/abs/2412.04935}
 }</code></pre>
-  </div>
+  </div>
 </section>
 
 <footer class="footer">
-  <div class="container">
-    <div class="content has-text-centered">
-      <a class="icon-link" href="https://arxiv.org/abs/2412.04935" target="_blank">
-        <i class="ai ai-arxiv"></i>
-      </a>
-      <a class="icon-link" href="https://github.com/niazoys/RLS_PSDF" target="_blank">
-        <i class="fab fa-github"></i>
-      </a>
-    </div>
-    <div class="columns is-centered">
-      <div class="column is-8">
-        <div class="content has-text-centered">
-          <p>
-            Website skeleton adapted from the <a href="https://github.com/nerfies/nerfies.github.io">Nerfies project page</a>.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
+  <div class="container">
+    <div class="content has-text-centered">
+      <a class="icon-link" href="https://arxiv.org/abs/2412.04935" target="_blank">
+        <i class="ai ai-arxiv"></i>
+      </a>
+      <a class="icon-link" href="https://github.com/niazoys/RLS_PSDF" target="_blank">
+        <i class="fab fa-github"></i>
+      </a>
+    </div>
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content has-text-centered">
+          <p>
+            Website skeleton adapted from the <a href="https://github.com/nerfies/nerfies.github.io">Nerfies project page</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
 </footer>
 
 </body>
 </html>
+
