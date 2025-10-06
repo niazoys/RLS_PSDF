@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pSDF: Uncertainty-aware Retinal Layer Segmentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        // Configure MathJax
+        window.MathJax = {
+          tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']]
+          }
+        };
+    </script>
+    <script type="text/javascript" id="MathJax-script" defer
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+            color: #334155; /* slate-700 */
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+        }
+        h1, h2, h3 {
+            font-weight: 700;
+            color: #1e293b; /* slate-800 */
+        }
+        .section {
+            padding: 2rem 1rem;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-weight: 500;
+            transition: all 0.2s;
+            background-color: #f1f5f9; /* slate-100 */
+            color: #334155; /* slate-700 */
+            border: 1px solid #e2e8f0; /* slate-200 */
+        }
+        .btn:hover {
+            background-color: #e2e8f0; /* slate-200 */
+            border-color: #cbd5e1; /* slate-300 */
+        }
+        .author-link {
+            color: #0ea5e9; /* sky-500 */
+            text-decoration: none;
+        }
+        .author-link:hover {
+            text-decoration: underline;
+        }
+        pre {
+            background-color: #f8fafc; /* slate-50 */
+            border: 1px solid #e2e8f0; /* slate-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: monospace;
+            color: #475569; /* slate-600 */
+        }
+    </style>
+</head>
+<body class="bg-white">
+
+    <main class="container mx-auto px-4">
+
+        <!-- Header Section -->
+        <header class="text-center pt-16 pb-8">
+            <h1 class="text-4xl font-bold">
+                Uncertainty-aware Retinal Layer Segmentation through Probabilistic Signed Distance Functions
+            </h1>
+            <div class="author-list mt-6 text-lg">
+                <a href="#" class="author-link">Mohammad Mohaiminul Islam</a><sup>1,2</sup>,
+                <a href="#" class="author-link">Coen de Vente</a><sup>1,2</sup>,
+                <a href="#" class="author-link">Bart Liefers</a><sup>3</sup>,
+                <a href="#" class="author-link">Caroline Klaver</a><sup>3</sup>,
+                <a href="#" class="author-link">Erik J Bekkers</a><sup>1</sup>,
+                <a href="#" class="author-link">Clara I. Sánchez</a><sup>1,2</sup>
+            </div>
+            <div class="affiliations mt-4 text-slate-500">
+                <p><sup>1</sup>Informatics Institute, University of Amsterdam &nbsp;&nbsp;&nbsp; <sup>2</sup>Amsterdam UMC &nbsp;&nbsp;&nbsp; <sup>3</sup>Erasmus MC</p>
+                <p class="font-bold mt-2">MIDL 2024</p>
+            </div>
+             <div class="flex justify-center flex-wrap gap-3 mt-8">
+                <a href="https://arxiv.org/abs/2412.04935" target="_blank" class="btn"><i class="fas fa-file-pdf"></i> Paper</a>
+                <a href="https://github.com/niazoys/RLS_PSDF" target="_blank" class="btn"><i class="fab fa-github"></i> Code</a>
+            </div>
+        </header>
+
+        <!-- Teaser Image -->
+        <section class="py-4">
+             <img src="https://i.imgur.com/vH9Z3tM.png" alt="Examples of uncertainty estimation on pathological and noisy conditions" class="w-full rounded-lg border border-slate-200">
+             <p class="text-center text-slate-500 mt-2 text-sm">
+                Our method (pSDF) accurately segments retinal layers while highlighting areas of high uncertainty (dotted lines) in pathological or noisy regions.
+             </p>
+        </section>
+
+
+        <!-- Abstract -->
+        <section id="abstract" class="section">
+            <h2 class="text-2xl font-bold">Abstract</h2>
+            <p class="text-lg mt-4 text-slate-700">
+                We present a new approach for uncertainty-aware retinal layer segmentation in Optical Coherence Tomography (OCT) scans using probabilistic signed distance functions (SDF). Traditional methods encounter difficulties in precise segmentation and lack geometrical grounding. To address these shortcomings, our methodology refines segmentation by predicting an SDF that parameterizes the retinal layer shape. We further enhance the framework by integrating probabilistic modeling, applying Gaussian distributions to encapsulate the uncertainty in the shape parameterization. This ensures a robust representation of retinal morphology even with ambiguous input or noise. Both quantitative and qualitative evaluations demonstrate superior performance when compared to other methods, offering a key step towards characterizing layer integrity for monitoring disease progression.
+            </p>
+        </section>
+
+        <!-- Method -->
+        <section id="method" class="section">
+            <h2 class="text-2xl font-bold">Method</h2>
+            <p class="text-lg mt-4 text-slate-700">
+                Instead of classifying pixels or regressing points, we teach our model a continuous, geometric representation of the layer boundary. The model learns to output a Signed Distance Function (SDF), a map where every pixel's value is its distance to the boundary. The layer itself is the zero-level contour.
+            </p>
+            <div class="my-8">
+                <img src="https://i.imgur.com/5qJ6g9M.png" alt="Diagram explaining the concept of a Signed Distance Function (SDF)" class="w-full rounded-lg border border-slate-200">
+            </div>
+            <p class="text-lg mt-4 text-slate-700">
+                Crucially, we make this probabilistic. The network predicts not just one distance value, but a Gaussian distribution. This distribution is defined by a mean, $\mu(x,y)$, and a standard deviation, $\sigma(x,y)$, which tells us how certain the model is about the layer's location at every point.
+            </p>
+            <div class="text-center my-6 text-lg">
+                $$p(d(x,y)|I,\theta) = \mathcal{N}(\mu(x,y), \sigma(x,y)^2)$$
+            </div>
+            <p class="text-lg mt-4 text-slate-700">
+                 Thanks to the Eikonal property of SDFs, this uncertainty in <em>distance</em> (represented by $\sigma$) directly translates to uncertainty in the layer's <em>physical location</em>, giving us a powerful tool for identifying ambiguous or pathological regions.
+            </p>
+        </section>
+
+        <!-- Results -->
+        <section id="results" class="section">
+            <h2 class="text-2xl font-bold">Results</h2>
+            <p class="text-lg mt-4 text-slate-700">
+                Our SDF-based methods trace layers with far greater precision, especially in challenging cases with structural damage from disease. The model's uncertainty naturally increases in areas where the layer is disrupted or hard to see, acting as a potential biomarker for pathology.
+            </p>
+            <div class="my-8">
+                <img src="https://i.imgur.com/s6E6R6n.png" alt="Qualitative comparison showing superior performance of SDF and pSDF methods" class="w-full rounded-lg border border-slate-200">
+                <p class="text-center text-slate-500 mt-2 text-sm">
+                    Comparison of ground truth, regression-based methods (REGR, pREGR), and our methods (SDF, pSDF) on challenging OCT scans.
+                </p>
+            </div>
+        </section>
+
+        <!-- BibTex -->
+        <section id="bibtex" class="section">
+            <h2 class="text-2xl font-bold">BibTeX</h2>
+            <pre class="mt-4 text-sm">
+@inproceedings{islam2024psdf,
+    author    = {Islam, Mohammad Mohaiminul and de Vente, Coen and Liefers, Bart and Klaver, Caroline and Bekkers, Erik J and S{\'a}nchez, Clara I.},
+    title     = {Uncertainty-aware retinal layer segmentation in OCT through probabilistic signed distance functions},
+    booktitle = {Medical Imaging with Deep Learning (MIDL)},
+    year      = {2024},
+    url       = {https://arxiv.org/abs/2412.04935}
+}</pre>
+        </section>
+    </main>
+    
+    <footer class="text-center py-8 px-4 mt-8 border-t border-slate-200 text-slate-400">
+        <p>Website design adapted from <a href="https://nerfies.github.io/" class="underline hover:text-sky-500">Nerfies</a>.</p>
+    </footer>
+
+</body>
+</html>
+
