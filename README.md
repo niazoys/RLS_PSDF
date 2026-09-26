@@ -24,12 +24,6 @@ This repository contains the official implementation of **uncertainty-aware reti
 
 <p align="center"><em>Figure 1 from the paper: signed distance functions represent retinal layer geometry through level sets, while probabilistic modeling provides spatially meaningful uncertainty.</em></p>
 
-## Abstract
-
-Accurately outlining retinal layers in OCT scans is important for ophthalmic analysis, but thin layers, image artifacts, pathology, and acquisition noise make reliable automated segmentation challenging. Rather than predicting layer pixels or boundaries directly, this work models retinal layer geometry with a signed distance function (SDF), whose zero level set defines the predicted boundary.
-
-The probabilistic SDF extends this representation by modeling the distance value with a Gaussian distribution. This produces both a segmentation estimate and uncertainty in the shape representation, allowing the method to highlight ambiguous regions and evaluate robustness under distortions such as shadowing, blinking, speckle, and motion. The approach is evaluated on internal and external OCT data and demonstrates improved geometric fidelity and informative uncertainty compared with pixel-wise and regression-based alternatives.
-
 ## Highlights
 
 - **Geometric segmentation:** retinal layer boundaries are represented by signed distance functions and their level sets.
