@@ -31,7 +31,6 @@ This repository contains the official implementation of **uncertainty-aware reti
 - **Uncertainty-aware analysis:** uncertainty can reveal ambiguous, noisy, or pathological regions in OCT scans.
 - **Robustness experiments:** the project includes settings for evaluating synthetic artifacts and noise.
 - **Hydra configuration:** models, datasets, losses, experiments, and logging are configured with composable YAML files.
-- **Scalable training:** CPU, single-GPU, and distributed GPU execution are supported through PyTorch.
 
 ## Repository structure
 
